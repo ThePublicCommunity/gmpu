@@ -11,11 +11,18 @@ import java.awt.AlphaComposite;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
+import javax.swing.DefaultListSelectionModel;
 import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
@@ -170,7 +177,7 @@ public class MainFrame extends javax.swing.JFrame {
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 452, Short.MAX_VALUE)
+                .addComponent(jScrollPane2)
                 .addContainerGap())
         );
         jPanel2Layout.setVerticalGroup(
@@ -523,6 +530,11 @@ public class MainFrame extends javax.swing.JFrame {
         tblAddonList.setModel(new tableModelAddons());
         tblAddonList.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
         tblAddonList.setSurrendersFocusOnKeystroke(true);
+        tblAddonList.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+            public void valueChanged(ListSelectionEvent e) {
+                tblAddonListSelect(e);
+            }
+        });
         jScrollPane3.setViewportView(tblAddonList);
 
         javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
@@ -1313,6 +1325,32 @@ public class MainFrame extends javax.swing.JFrame {
                 addonSelectedUpdate=true;
             }
             job.updateChanges=this.txtUpdateChanges.getText();
+            
+            // Save settings to file
+            Properties workshopProps = new Properties();
+            workshopProps.setProperty("title", this.txtAddonTitle.getText());
+            workshopProps.setProperty("type", getAddonType());
+            for (int i=0;i<this.tagsChkBoxes.size();i++){
+                workshopProps.setProperty("tag_" + this.tagsChkBoxes.get(i).getName().toLowerCase(), String.valueOf(this.tagsChkBoxes.get(i).isSelected()));
+            }
+            workshopProps.setProperty("ignore", this.txtAddonIgnore.getText());
+            workshopProps.setProperty("folder", this.txtCreateFileFolder.getText());
+            OutputStream output = null;
+            try {
+                output = new FileOutputStream("data/" + ((String) this.tblAddonList.getValueAt(selectedRow, 0)) + ".properties");
+		workshopProps.store(output, null);
+            } catch (IOException io) {
+                    io.printStackTrace();
+            } finally {
+                    if (output != null) {
+                            try {
+                                    output.close();
+                            } catch (IOException e) {
+                                    e.printStackTrace();
+                            }
+                    }
+
+            }
         }else if (this.btnExtract.isSelected()){
             job = new gmpuJob(gmpuJob.EXTRACT);
             job.extractName = this.txtExtractFile.getText();
@@ -1440,6 +1478,72 @@ public class MainFrame extends javax.swing.JFrame {
             for (int i=0 ;i<this.tagsChkBoxes.size();i++) if (!this.tagsChkBoxes.get(i).isSelected()) this.tagsChkBoxes.get(i).setEnabled(false);
         }else{
             for (int i=0 ;i<this.tagsChkBoxes.size();i++) this.tagsChkBoxes.get(i).setEnabled(true);
+        }
+    }
+    
+    private void tblAddonListSelect(ListSelectionEvent ev){
+        System.out.println(ev.getValueIsAdjusting());
+        if (!ev.getValueIsAdjusting()) {
+            int i = ((DefaultListSelectionModel)ev.getSource()).getAnchorSelectionIndex();
+            tableModelAddons addonList = (tableModelAddons) tblAddonList.getModel();
+            if (i>=0 && i<addonList.getRowCount()){
+                String workshopID = (String)addonList.getValueAt(i, 0);
+                Properties workshopProps = new Properties();
+                InputStream input = null;
+                try {
+                    input = new FileInputStream("data/" + workshopID + ".properties");
+                    workshopProps.load(input);
+                    txtAddonTitle.setText(workshopProps.getProperty("title"));
+                    String type = workshopProps.getProperty("type").toLowerCase();
+                    if (null != type) switch (type) {
+                        case "effects":
+                            btnEffects.setSelected(true);
+                            break;
+                        case "gamemode":
+                            btnGamemode.setSelected(true);
+                            break;
+                        case "map":
+                            btnMap.setSelected(true);
+                            break;
+                        case "model":
+                            btnModel.setSelected(true);
+                            break;
+                        case "npc":
+                            btnNPC.setSelected(true);
+                            break;
+                        case "tool":
+                            btnTool.setSelected(true);
+                            break;
+                        case "vehicle":
+                            btnVehicle.setSelected(true);
+                            break;
+                        case "weapon":
+                            btnWeapon.setSelected(true);
+                            break;
+                        case "servercontent":
+                            btnServerContent.setSelected(true);
+                            break;
+                        default:
+                            break;
+                    }
+                    for (int j=0;j<this.tagsChkBoxes.size();j++){
+                        boolean value = Boolean.parseBoolean(workshopProps.getProperty("tag_" + this.tagsChkBoxes.get(j).getName().toLowerCase()));
+                        tagsChkBoxes.get(j).setSelected(value);
+                    }
+                    txtAddonIgnore.setText(workshopProps.getProperty("ignore"));
+                    txtCreateFileFolder.setText(workshopProps.getProperty("folder"));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    if (input != null) {
+			try {
+                            input.close();
+			} catch (IOException e) {
+                            e.printStackTrace();
+			}
+                    }
+                }
+            }
         }
     }
     

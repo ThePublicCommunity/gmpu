@@ -788,6 +788,10 @@
                             </Property>
                             <Property name="surrendersFocusOnKeystroke" type="boolean" value="true"/>
                           </Properties>
+                          <AuxValues>
+                            <AuxValue name="JavaCodeGenerator_InitCodePost" type="java.lang.String" value="tblAddonList.getSelectionModel().addListSelectionListener(new ListSelectionListener() {&#xd;&#xa;    public void valueChanged(ListSelectionEvent e) {&#xd;&#xa;        tblAddonListSelect(e);&#xd;&#xa;    }&#xd;&#xa;});"/>
+                            <AuxValue name="JavaCodeGenerator_SerializeTo" type="java.lang.String" value="MainFrame_tblAddonList"/>
+                          </AuxValues>
                         </Component>
                       </SubComponents>
                     </Container>
